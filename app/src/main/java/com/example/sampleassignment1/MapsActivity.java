@@ -1,9 +1,5 @@
 package com.example.sampleassignment1;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentActivity;
-
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.util.Log;
@@ -11,6 +7,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -22,14 +22,20 @@ import com.google.android.gms.maps.SupportStreetViewPanoramaFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.example.sampleassignment1.databinding.ActivityMapsBinding;
-import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.TreeSet;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, OnStreetViewPanoramaReadyCallback {
 
@@ -56,6 +62,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     MyLocationPlaceMap myLocationPlaceMap;
     ArrayList<MyLocationPlace> myLocations = new ArrayList<>();
     MyLocationPlace myLocation;
+    private final TreeSet<UserLocEntry> locations = new TreeSet<>(new UserLocEntrySorter());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,13 +103,55 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         mDatabase = FirebaseDatabase.getInstance(DatabaseHelper.DATABASE_URL).getReference();
-        username = extras.getString("username");
-        UserLocEntry userLocEntry = new UserLocEntry(address, LocalDateTime.now().toString(), latitude, longitude);
-        Log.d("localdatetime", LocalDateTime.now().toString());
-        String latStr = Integer.toString((int)(latitude * 1000));
-        String longStr = Integer.toString((int)(longitude * 1000));
-        String latlong = latStr.concat(longStr);
-        mDatabase.child(username).child(latlong).setValue(userLocEntry);
+        if (extras != null) {
+            username = extras.getString("username");
+            LocalDateTime time = LocalDateTime.now();
+            UserLocEntry userLocEntry = new UserLocEntry(address, time, latitude, longitude);
+
+            Log.d("localdatetime", LocalDateTime.now().toString());
+            String latStr = Integer.toString((int)(latitude * 1000));
+            String longStr = Integer.toString((int)(longitude * 1000));
+            String latlong = latStr + longStr;
+            mDatabase.child(username).child(latlong).setValue(userLocEntry);
+        }
+
+        mDatabase.child(username).addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                locations.clear();
+                UserLocEntry temp = new UserLocEntry(
+                        snapshot.child("address").getValue().toString(),
+                        Instant.ofEpochSecond(Long.parseLong(snapshot.child("epoch").getValue().toString())).atOffset(ZoneOffset.UTC).toLocalDateTime(),
+                        Double.parseDouble(snapshot.child("latitude").getValue().toString()),
+                        Double.parseDouble(snapshot.child("longitude").getValue().toString())
+                );
+                locations.add(temp);
+                for (UserLocEntry loc: locations) {
+                    Log.d("aisi", loc.toString());
+                }
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
     }
 
     /**
@@ -119,16 +168,33 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         mMap.clear();
+
         mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
             @Override
             public void onMapLoaded() {
+                boolean isFirst = true;
+                if (!locations.isEmpty()) {
+                    for (UserLocEntry loc : locations) {
+                        mMap.addMarker(
+                                new MarkerOptions()
+                                        .title("Show Surroundings")
+                                        .snippet("Latitude: " + loc.latitude + ", Longitude: " + loc.longitude +
+                                                "\nAddress: " + loc.address)
+                                        .position(new LatLng(loc.latitude, loc.longitude))
+                        );
+                        if (isFirst) {
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(loc.latitude, loc.longitude), 14));
+                            isFirst = false;
+                        }
+                    }
+                }
                 redMarker = mMap.addMarker(new MarkerOptions()
                         .title("Show Surroundings")
                         .snippet("Latitude: " + latitude + ", Longitude: " + longitude +
                                 "\nAddress: " + address)
                         .position(latLngRed)
                 );
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLngRed, 14));
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLngRed, 18));
             }
         });
 
