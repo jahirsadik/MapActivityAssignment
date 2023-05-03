@@ -4,7 +4,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentActivity;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -23,18 +25,25 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.sampleassignment1.databinding.ActivityMapsBinding;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, OnStreetViewPanoramaReadyCallback {
+
+    private DatabaseReference mDatabase;
+    String username;
+
 
     private GoogleMap mMap;
     SupportMapFragment mapFragment;
     SupportStreetViewPanoramaFragment streetViewPanoramaFragment;
     StreetViewPanorama mStreetViewPanorama;
 
-    double latitude;
-    double longitude;
+    Double latitude;
+    Double longitude;
     LatLng latLngRed, latLngBlue;
     String address;
     TextView textViewAddress;
@@ -84,6 +93,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getView().bringToFront();
 
         myLocationPlaceMap = new MyLocationPlaceMap(getApplicationContext(), MapsActivity.this);
+
+
+        mDatabase = FirebaseDatabase.getInstance(DatabaseHelper.DATABASE_URL).getReference();
+        username = extras.getString("username");
+        UserLocEntry userLocEntry = new UserLocEntry(address, LocalDateTime.now().toString(), latitude, longitude);
+        Log.d("localdatetime", LocalDateTime.now().toString());
+        String latStr = Integer.toString((int)(latitude * 1000));
+        String longStr = Integer.toString((int)(longitude * 1000));
+        String latlong = latStr.concat(longStr);
+        mDatabase.child(username).child(latlong).setValue(userLocEntry);
     }
 
     /**
@@ -95,6 +114,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
      */
+    @SuppressLint("PotentialBehaviorOverride")
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;

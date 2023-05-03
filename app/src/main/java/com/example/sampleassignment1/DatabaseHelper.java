@@ -7,11 +7,15 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 import java.io.File;
 
 
 public class DatabaseHelper extends SQLiteOpenHelper {
-
+    final static String DATABASE_URL = "https://assignment2-9cf0e-default-rtdb.asia-southeast1.firebasedatabase.app/";
+    public FirebaseDatabase database = FirebaseDatabase.getInstance("https://assignment2-9cf0e-default-rtdb.asia-southeast1.firebasedatabase.app/");
     private static final String DATABASE_NAME = "usernames.db";
     private static final int DATABASE_VERSION = 1;
     public static final String TABLE_NAME = "usernames_table";
