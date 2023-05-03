@@ -3,6 +3,10 @@ package com.example.sampleassignment1;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ContentValues;
+import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -11,6 +15,11 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -23,7 +32,10 @@ public class MainActivity extends AppCompatActivity {
     private RadioButton radioText2;
     private RadioButton radioText3;
     private LinearLayout optionalLayout;
+    private String selecteduser;
     private Button startButton;
+    private DatabaseHelper dbHelper;
+    private SQLiteDatabase db;
     private static final String EDIT_TEXT_1_KEY = "editText1";
     private static final String EDIT_TEXT_2_KEY = "editText2";
     private static final String EDIT_TEXT_3_KEY = "editText3";
@@ -46,6 +58,32 @@ public class MainActivity extends AppCompatActivity {
         optionalLayout = findViewById(R.id.optionalUI);
         startButton = findViewById(R.id.start_button);
 
+        dbHelper = new DatabaseHelper(getApplicationContext());
+        db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.query(
+            DatabaseHelper.TABLE_NAME,
+                DatabaseHelper.projection,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        ArrayList<String> usernames = new ArrayList<>();
+        while (cursor.moveToNext()) {
+            usernames.add(cursor.getString(cursor.getColumnIndexOrThrow("username1")));
+            usernames.add(cursor.getString(cursor.getColumnIndexOrThrow("username2")));
+            usernames.add(cursor.getString(cursor.getColumnIndexOrThrow("username3")));
+        }
+        cursor.close();
+        db.close();
+
+        if (usernames.size() >= 3) {
+            editText1.setText(usernames.get(0));
+            editText2.setText(usernames.get(1));
+            editText3.setText(usernames.get(2));
+        }
+
         if (savedInstanceState != null) {
             editText1.setText(savedInstanceState.getString(EDIT_TEXT_1_KEY));
             editText2.setText(savedInstanceState.getString(EDIT_TEXT_2_KEY));
@@ -58,15 +96,56 @@ public class MainActivity extends AppCompatActivity {
             String text2 = editText2.getText().toString();
             String text3 = editText3.getText().toString();
 
+            if (text1.isEmpty() || text2.isEmpty() || text3.isEmpty()) {
+                return;
+            }
+
             radioText1.setText(text1);
             radioText2.setText(text2);
             radioText3.setText(text3);
 
             optionalLayout.setVisibility(View.VISIBLE);
 
-            // save text1, text2, and text3 to a database or file here
+            db = dbHelper.getWritableDatabase();
+            dbHelper.rebuild(db);
+            ContentValues values = new ContentValues();
+            values.put("username1", text1);
+            values.put("username2", text2);
+            values.put("username3", text3);
+            long result = db.insert(DatabaseHelper.TABLE_NAME, null, values);
 
-            Toast.makeText(MainActivity.this, "Usernames saved!", Toast.LENGTH_SHORT).show();
+            if (result == -1) {
+                Toast.makeText(MainActivity.this, "ERROR: Failed to save", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(MainActivity.this, "Usernames saved!", Toast.LENGTH_SHORT).show();
+            }
+            db.close();
+        });
+
+        startButton.setOnClickListener(v -> {
+            String text1 = radioText1.getText().toString();
+            String text2 = radioText2.getText().toString();
+            String text3 = radioText3.getText().toString();
+            String edit1 = editText1.getText().toString();
+            String edit2 = editText2.getText().toString();
+            String edit3 = editText3.getText().toString();
+
+            if ((text1.isEmpty() || text2.isEmpty() || text3.isEmpty()) || ((edit1.isEmpty() || edit2.isEmpty() || edit3.isEmpty()))) {
+                return;
+            }
+
+            RadioButton selected = findViewById(userGroup.getCheckedRadioButtonId());
+            if (selected != null) {
+                String[] arr = {text1, text2, text3};
+                Set<String> users = new HashSet<>(Arrays.asList(arr));
+                users.remove(selected.getText().toString());
+                String[] filtered = users.toArray(new String[0]);
+                Intent intent = new Intent(this, SelectActivity.class);
+                intent.putExtra("selectedUser", selected.getText().toString());
+                intent.putExtra("otherUser1", filtered[0]);
+                intent.putExtra("otherUser2", filtered[1]);
+                startActivity(intent);
+            }
         });
     }
 

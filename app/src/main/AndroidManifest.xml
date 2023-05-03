@@ -14,7 +14,7 @@
         <activity
             android:name=".MapsActivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity"/>
+            android:parentActivityName=".SelectActivity"/>
         <!--
              TODO: Before you run your application, you need a Google Maps API key.
 
@@ -29,6 +29,11 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCh2PIXXDw8PwJxvWACBtEUEYpHBVu9g90" />
+
+        <activity
+            android:name=".SelectActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"/>
 
         <activity
             android:name=".MainActivity"
