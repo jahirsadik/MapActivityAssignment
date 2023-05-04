@@ -36,6 +36,11 @@
             android:parentActivityName=".MainActivity"/>
 
         <activity
+            android:name=".RouteActivity"
+            android:exported="false"
+            android:parentActivityName=".SelectActivity"/>
+
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="Location Tracker">

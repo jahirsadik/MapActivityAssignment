@@ -65,4 +65,17 @@ public class SelectActivity extends AppCompatActivity {
         }
     }
 
+    public void whereIsUser2(View view) {
+        Intent intent = new Intent(this, RouteActivity.class);
+        intent.putExtra("fromUser", currentUser);
+        intent.putExtra("toUser", otherUser1);
+        startActivity(intent);
+    }
+
+    public void whereIsUser3(View view) {
+        Intent intent = new Intent(this, RouteActivity.class);
+        intent.putExtra("fromUser", currentUser);
+        intent.putExtra("toUser", otherUser2);
+        startActivity(intent);
+    }
 }

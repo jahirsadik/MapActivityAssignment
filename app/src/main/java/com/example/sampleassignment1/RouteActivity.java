@@ -3,10 +3,9 @@ package com.example.sampleassignment1;
 import static com.example.sampleassignment1.DatabaseHelper.fDatabase;
 
 import android.annotation.SuppressLint;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -21,95 +20,86 @@ import com.google.android.gms.maps.OnStreetViewPanoramaReadyCallback;
 import com.google.android.gms.maps.StreetViewPanorama;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.SupportStreetViewPanoramaFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.TreeSet;
 
-public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, OnStreetViewPanoramaReadyCallback {
+public class RouteActivity extends AppCompatActivity implements OnMapReadyCallback, OnStreetViewPanoramaReadyCallback {
 
-    String username;
-
+    String fromUser;
+    String toUser;
 
     private GoogleMap mMap;
     SupportMapFragment mapFragment;
     SupportStreetViewPanoramaFragment streetViewPanoramaFragment;
     StreetViewPanorama mStreetViewPanorama;
-
-    Double latitude;
-    Double longitude;
-    LatLng latLngRed, latLngBlue;
-    String address;
-    TextView textViewAddress;
-    TextView textViewLatitude;
-    TextView textViewLongitude;
-    Button btnMapStreetView;
-    PlacesClient placesClient;
-    Marker redMarker, blueMarker;
     boolean showMap = true;
     MyLocationPlaceMap myLocationPlaceMap;
-    ArrayList<MyLocationPlace> myLocations = new ArrayList<>();
-    MyLocationPlace myLocation;
-    private final TreeSet<UserLocEntry> locations = new TreeSet<>(new UserLocEntrySorter());
+    private final TreeSet<UserLocEntry> fromlocations = new TreeSet<>(new UserLocEntrySorter());
+    private final TreeSet<UserLocEntry> toLocations = new TreeSet<>(new UserLocEntrySorter());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
-//        binding = ActivityMapsBinding.inflate(getLayoutInflater());
-//        setContentView(binding.getRoot());
-        setTitle("My Location Details");
-        btnMapStreetView = findViewById(R.id.buttonMapStreetView);
+        setContentView(R.layout.activity_route);
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            latitude = extras.getDouble("lat");
-            longitude = extras.getDouble("lng");
-            latLngRed = new LatLng(latitude, longitude);
-            address = extras.getString("addr");
-
-            textViewAddress = findViewById(R.id.textViewStreetAddress);
-            textViewAddress.setText("Address: " + address);
-            textViewLatitude = findViewById(R.id.textViewLatitude);
-            textViewLatitude.setText("Latitude: " + latitude);
-            textViewLongitude = findViewById(R.id.textViewLongitude);
-            textViewLongitude.setText("Longitude: " + longitude);
-
-            username = extras.getString("username");
-            LocalDateTime time = LocalDateTime.now();
-            UserLocEntry userLocEntry = new UserLocEntry(address, time, latitude, longitude);
-
-            Log.d("localdatetime", LocalDateTime.now().toString());
-            String latStr = Integer.toString((int)(latitude * 1000));
-            String longStr = Integer.toString((int)(longitude * 1000));
-            String latlong = latStr + longStr;
-            fDatabase.child(username).child(latlong).setValue(userLocEntry);
+            fromUser = extras.getString("fromUser");
+            toUser = extras.getString("toUser");
         }
 
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+                .findFragmentById(R.id.routeMap);
         mapFragment.getMapAsync(this);
 
         streetViewPanoramaFragment =
                 (SupportStreetViewPanoramaFragment)
-                        getSupportFragmentManager().findFragmentById(R.id.streetView);
+                        getSupportFragmentManager().findFragmentById(R.id.routeStreetView);
         streetViewPanoramaFragment.getStreetViewPanoramaAsync(this);
 
         mapFragment.getView().bringToFront();
 
-        myLocationPlaceMap = new MyLocationPlaceMap(getApplicationContext(), MapsActivity.this);
+        myLocationPlaceMap = new MyLocationPlaceMap(getApplicationContext(), RouteActivity.this);
 
-        fDatabase.child(username).addChildEventListener(new ChildEventListener() {
+        fDatabase.child(fromUser).addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-                DatabaseHelper.updateLocations(locations, snapshot);
+                DatabaseHelper.updateLocations(fromlocations, snapshot);
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+        fDatabase.child(toUser).addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+                DatabaseHelper.updateLocations(toLocations, snapshot);
             }
 
             @Override
@@ -154,53 +144,47 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onMapLoaded() {
                 boolean isFirst = true;
-                if (!locations.isEmpty()) {
-                    for (UserLocEntry loc : locations) {
+                if (!fromlocations.isEmpty()) {
+                    for (UserLocEntry loc : fromlocations) {
                         mMap.addMarker(
                                 new MarkerOptions()
                                         .title("Show Surroundings")
                                         .snippet("Latitude: " + loc.latitude + ", Longitude: " + loc.longitude +
                                                 "\nAddress: " + loc.address)
                                         .position(new LatLng(loc.latitude, loc.longitude))
+                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                         );
                         if (isFirst) {
-                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(loc.latitude, loc.longitude), 18));
+                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(loc.latitude, loc.longitude), 14));
                             isFirst = false;
                         }
                     }
                 }
-                redMarker = mMap.addMarker(new MarkerOptions()
-                        .title("Show Surroundings")
-                        .snippet("Latitude: " + latitude + ", Longitude: " + longitude +
-                                "\nAddress: " + address)
-                        .position(latLngRed)
-                );
-            }
-        });
-
-        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(@NonNull Marker marker) {
-                if (marker.equals(redMarker)) {
-                    streetViewPanoramaFragment.getView().bringToFront();
-                    btnMapStreetView.setText("Show map");
-                    showMap = false;
-                    return true;
-                } else {
-                    return false;
+                if (!toLocations.isEmpty()) {
+                    for (UserLocEntry loc : toLocations) {
+                        mMap.addMarker(
+                                new MarkerOptions()
+                                        .title("Show Surroundings")
+                                        .snippet("Latitude: " + loc.latitude + ", Longitude: " + loc.longitude +
+                                                "\nAddress: " + loc.address)
+                                        .position(new LatLng(loc.latitude, loc.longitude))
+                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                        );
+                    }
                 }
 
+                LatLng from = new LatLng(fromlocations.first().latitude, fromlocations.first().longitude);
+                LatLng to = new LatLng(toLocations.first().latitude, toLocations.first().longitude);
+                mMap.addPolyline(new PolylineOptions().add(from, to).geodesic(true).color(Color.BLUE));
             }
         });
 
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(@NonNull Marker marker) {
-                if (!marker.getId().equals(redMarker.getId())) {
-                    streetViewPanoramaFragment.getView().bringToFront();
-                    latLngBlue = marker.getPosition();
-                    mStreetViewPanorama.setPosition(latLngBlue);
-                }
+                showMap = false;
+                streetViewPanoramaFragment.getView().bringToFront();
+                mStreetViewPanorama.setPosition(marker.getPosition());
             }
         });
 
@@ -232,26 +216,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onStreetViewPanoramaReady(@NonNull StreetViewPanorama streetViewPanorama) {
-        mStreetViewPanorama = streetViewPanorama;
-        mStreetViewPanorama.setPosition(latLngRed);
-    }
 
-    public void showNearby(View view) {
-        mapFragment.getView().bringToFront();
-        myLocationPlaceMap.getNearbyPlaces(mMap, "YOUR_API_KEY");
     }
-
-    public void showMapStreetView(View view) {
-        showMap = !showMap;
-        if (showMap) {
-            mapFragment.getMapAsync(this);
-            mapFragment.getView().bringToFront();
-            btnMapStreetView.setText("Show Street View");
-        } else {
-            streetViewPanoramaFragment.getStreetViewPanoramaAsync(this);
-            streetViewPanoramaFragment.getView().bringToFront();
-            btnMapStreetView.setText("Show Map");
-        }
-    }
-
 }

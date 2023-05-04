@@ -1,5 +1,7 @@
 package com.example.sampleassignment1;
 
+import androidx.annotation.NonNull;
+
 import com.google.firebase.database.IgnoreExtraProperties;
 
 import java.time.LocalDateTime;
@@ -23,6 +25,7 @@ public class UserLocEntry {
         this.epoch = date.toEpochSecond(ZoneOffset.UTC);
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "UserLocEntry{" +
@@ -32,5 +35,20 @@ public class UserLocEntry {
                 ", longitude=" + longitude +
                 ", epoch=" + epoch +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (!(o instanceof UserLocEntry)) {
+            return false;
+        }
+
+        UserLocEntry other = (UserLocEntry) o;
+
+        return address.equals(other.address) && date.equals(other.date) && longitude == other.longitude && latitude == other.latitude && epoch.equals(other.epoch);
     }
 }
