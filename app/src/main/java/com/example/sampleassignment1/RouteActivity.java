@@ -29,6 +29,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.SupportStreetViewPanoramaFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -59,6 +60,9 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
     private final TreeSet<UserLocEntry> toLocations = new TreeSet<>(new UserLocEntrySorter());
     private LatLng clickedLatLng;
 
+    TextView distanceTv;
+    TextView drivingTimeTv;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,6 +86,9 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
         mapFragment.getView().bringToFront();
 
         myLocationPlaceMap = new MyLocationPlaceMap(getApplicationContext(), RouteActivity.this);
+
+        distanceTv = findViewById(R.id.textViewDistance);
+        drivingTimeTv = findViewById(R.id.textViewDrivingTime);
 
         fDatabase.child(fromUser).addChildEventListener(new ChildEventListener() {
             @Override
@@ -157,7 +164,17 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
         mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
             @Override
             public void onMapLoaded() {
-                boolean isFirst = true;
+                LatLng from;
+                LatLng to;
+
+                if (!fromlocations.isEmpty() && !toLocations.isEmpty()) {
+                    from = new LatLng(fromlocations.first().latitude, fromlocations.first().longitude);
+                    to = new LatLng(toLocations.first().latitude, toLocations.first().longitude);
+                    drawRoute(from, to);
+                    LatLngBounds latLngBounds = new LatLngBounds.Builder().include(from).include(to).build();
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(latLngBounds, 0));
+                }
+
                 if (!fromlocations.isEmpty()) {
                     for (UserLocEntry loc : fromlocations) {
                         mMap.addMarker(
@@ -168,10 +185,6 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                                         .position(new LatLng(loc.latitude, loc.longitude))
                                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                         );
-                        if (isFirst) {
-                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(loc.latitude, loc.longitude), 14));
-                            isFirst = false;
-                        }
                     }
                 }
                 if (!toLocations.isEmpty()) {
@@ -186,10 +199,6 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                         );
                     }
                 }
-
-                LatLng from = new LatLng(fromlocations.first().latitude, fromlocations.first().longitude);
-                LatLng to = new LatLng(toLocations.first().latitude, toLocations.first().longitude);
-                drawRoute(from, to);
             }
         });
 
@@ -240,12 +249,8 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                 + origin.latitude + "," + origin.longitude + "&destination="
                 + destination.latitude + "," + destination.longitude
                 + "&mode=driving&key=AIzaSyCh2PIXXDw8PwJxvWACBtEUEYpHBVu9g90";
-        String orsUrl = "https://api.openrouteservice.org/v2/directions/driving-car?api_key=" +
-                "5b3ce3597851110001cf6248ab4c2791216a44ce9e4a1dba02d86be2&start=" +
-                origin.latitude + "," + origin.longitude + "&end="
-                + destination.latitude + "," + destination.longitude;
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, orsUrl, null,
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
@@ -254,26 +259,44 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                         polylineOptions.color(Color.RED);
                         polylineOptions.width(5);
 
-                        Log.d("json_response", response.toString());
+                        Log.d("request", url);
+                        Log.d("response", response.toString());
 
-                        JSONArray points = null;
+                        JSONArray routes = null;
                         try {
-                            points = response.getJSONObject("features").getJSONObject("geometry").getJSONArray("coordinates");
+                            routes = response.getJSONArray("routes");
                         } catch (JSONException e) {
                             throw new RuntimeException(e);
                         }
-                        for (int i = 0; i < points.length(); i++) {
+                        for (int i = 0; i < routes.length(); i++) {
                             try {
-                                JSONArray point = points.getJSONArray(i);
-//                                JSONObject overviewPolyline = route.getJSONObject("overview_polyline");
-//                                String points = overviewPolyline.getString("points");
-//                                List<LatLng> path = PolyUtil.decode(points);
-                                polylineOptions.add(new LatLng((double) point.get(0), (double) point.get(1)));
+                                JSONObject route = routes.getJSONObject(i);
+                                JSONObject overviewPolyline = route.getJSONObject("overview_polyline");
+                                String points = overviewPolyline.getString("points");
+                                List<LatLng> path = PolyUtil.decode(points);
+                                polylineOptions.addAll(path);
                             } catch (JSONException e) {
                                 throw new RuntimeException(e);
                             }
                         }
                         mMap.addPolyline(polylineOptions);
+                        try {
+                            String distance = routes.getJSONObject(routes.length() - 1).getJSONArray("legs")
+                                    .getJSONObject(0)
+                                    .getJSONObject("distance")
+                                    .getString("text");
+
+                            String duration = routes.getJSONObject(routes.length() - 1).getJSONArray("legs")
+                                    .getJSONObject(0)
+                                    .getJSONObject("duration")
+                                    .getString("text");
+
+                            distanceTv.setText("Distance: " + distance);
+                            drivingTimeTv.setText("Driving time: " + duration);
+
+                        } catch (JSONException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 },
                 new Response.ErrorListener() {

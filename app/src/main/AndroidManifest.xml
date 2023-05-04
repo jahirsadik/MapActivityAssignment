@@ -33,6 +33,7 @@
         <activity
             android:name=".SelectActivity"
             android:exported="false"
+            android:alwaysRetainTaskState="false"
             android:parentActivityName=".MainActivity"/>
 
         <activity
