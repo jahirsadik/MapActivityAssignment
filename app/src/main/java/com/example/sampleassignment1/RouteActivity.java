@@ -5,6 +5,7 @@ import static com.example.sampleassignment1.DatabaseHelper.fDatabase;
 import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -13,6 +14,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -28,7 +35,13 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.maps.android.PolyUtil;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.List;
 import java.util.TreeSet;
 
 public class RouteActivity extends AppCompatActivity implements OnMapReadyCallback, OnStreetViewPanoramaReadyCallback {
@@ -44,6 +57,7 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
     MyLocationPlaceMap myLocationPlaceMap;
     private final TreeSet<UserLocEntry> fromlocations = new TreeSet<>(new UserLocEntrySorter());
     private final TreeSet<UserLocEntry> toLocations = new TreeSet<>(new UserLocEntrySorter());
+    private LatLng clickedLatLng;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,7 +162,7 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                     for (UserLocEntry loc : fromlocations) {
                         mMap.addMarker(
                                 new MarkerOptions()
-                                        .title("Show Surroundings")
+                                        .title(fromUser)
                                         .snippet("Latitude: " + loc.latitude + ", Longitude: " + loc.longitude +
                                                 "\nAddress: " + loc.address)
                                         .position(new LatLng(loc.latitude, loc.longitude))
@@ -164,7 +178,7 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                     for (UserLocEntry loc : toLocations) {
                         mMap.addMarker(
                                 new MarkerOptions()
-                                        .title("Show Surroundings")
+                                        .title(toUser)
                                         .snippet("Latitude: " + loc.latitude + ", Longitude: " + loc.longitude +
                                                 "\nAddress: " + loc.address)
                                         .position(new LatLng(loc.latitude, loc.longitude))
@@ -175,16 +189,17 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
 
                 LatLng from = new LatLng(fromlocations.first().latitude, fromlocations.first().longitude);
                 LatLng to = new LatLng(toLocations.first().latitude, toLocations.first().longitude);
-                mMap.addPolyline(new PolylineOptions().add(from, to).geodesic(true).color(Color.BLUE));
+                drawRoute(from, to);
             }
         });
 
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(@NonNull Marker marker) {
-                showMap = false;
+                showMap = true;
                 streetViewPanoramaFragment.getView().bringToFront();
-                mStreetViewPanorama.setPosition(marker.getPosition());
+                clickedLatLng = marker.getPosition();
+                mStreetViewPanorama.setPosition(clickedLatLng);
             }
         });
 
@@ -216,6 +231,66 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
 
     @Override
     public void onStreetViewPanoramaReady(@NonNull StreetViewPanorama streetViewPanorama) {
+        mStreetViewPanorama = streetViewPanorama;
+        mStreetViewPanorama.setPosition(clickedLatLng);
+    }
 
+    public void drawRoute(LatLng origin, LatLng destination) {
+        String url = "https://maps.googleapis.com/maps/api/directions/json?origin="
+                + origin.latitude + "," + origin.longitude + "&destination="
+                + destination.latitude + "," + destination.longitude
+                + "&mode=driving&key=AIzaSyCh2PIXXDw8PwJxvWACBtEUEYpHBVu9g90";
+        String orsUrl = "https://api.openrouteservice.org/v2/directions/driving-car?api_key=" +
+                "5b3ce3597851110001cf6248ab4c2791216a44ce9e4a1dba02d86be2&start=" +
+                origin.latitude + "," + origin.longitude + "&end="
+                + destination.latitude + "," + destination.longitude;
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, orsUrl, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        // Parse the JSON response and draw the route on the map
+                        PolylineOptions polylineOptions = new PolylineOptions();
+                        polylineOptions.color(Color.RED);
+                        polylineOptions.width(5);
+
+                        Log.d("json_response", response.toString());
+
+                        JSONArray points = null;
+                        try {
+                            points = response.getJSONObject("features").getJSONObject("geometry").getJSONArray("coordinates");
+                        } catch (JSONException e) {
+                            throw new RuntimeException(e);
+                        }
+                        for (int i = 0; i < points.length(); i++) {
+                            try {
+                                JSONArray point = points.getJSONArray(i);
+//                                JSONObject overviewPolyline = route.getJSONObject("overview_polyline");
+//                                String points = overviewPolyline.getString("points");
+//                                List<LatLng> path = PolyUtil.decode(points);
+                                polylineOptions.add(new LatLng((double) point.get(0), (double) point.get(1)));
+                            } catch (JSONException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        mMap.addPolyline(polylineOptions);
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // Handle the error
+                    }
+                });
+        RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+        requestQueue.add(jsonObjectRequest);
+    }
+
+    public void showRouteMapStreetView(View view) {
+        if (showMap) {
+            showMap = false;
+            mapFragment.getMapAsync(this);
+            mapFragment.getView().bringToFront();
+        }
     }
 }
