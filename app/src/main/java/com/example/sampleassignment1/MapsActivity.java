@@ -238,7 +238,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void showNearby(View view) {
         mapFragment.getView().bringToFront();
-        myLocationPlaceMap.getNearbyPlaces(mMap, "YOUR_API_KEY");
+        myLocationPlaceMap.getNearbyPlaces(mMap, "AIzaSyCh2PIXXDw8PwJxvWACBtEUEYpHBVu9g90");
     }
 
     public void showMapStreetView(View view) {
