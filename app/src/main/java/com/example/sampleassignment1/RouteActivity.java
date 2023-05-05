@@ -276,7 +276,7 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                                 List<LatLng> path = PolyUtil.decode(points);
                                 polylineOptions.addAll(path);
                             } catch (JSONException e) {
-                                throw new RuntimeException(e);
+                                Log.e("routing", "JSON parsing error has occured");
                             }
                         }
                         mMap.addPolyline(polylineOptions);
@@ -294,8 +294,8 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                             distanceTv.setText("Distance: " + distance);
                             drivingTimeTv.setText("Driving time: " + duration);
 
-                        } catch (JSONException e) {
-                            throw new RuntimeException(e);
+                        } catch (Exception e) {
+                            Log.e("routing", "Distance/Duration parsing error has occured");
                         }
                     }
                 },
