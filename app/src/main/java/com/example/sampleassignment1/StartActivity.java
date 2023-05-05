@@ -21,7 +21,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-public class MainActivity extends AppCompatActivity {
+public class StartActivity extends AppCompatActivity {
 
     private EditText editText1;
     private EditText editText2;
@@ -115,9 +115,9 @@ public class MainActivity extends AppCompatActivity {
             long result = db.insert(DatabaseHelper.TABLE_NAME, null, values);
 
             if (result == -1) {
-                Toast.makeText(MainActivity.this, "ERROR: Failed to save", Toast.LENGTH_SHORT).show();
+                Toast.makeText(StartActivity.this, "ERROR: Failed to save", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(MainActivity.this, "Usernames saved!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(StartActivity.this, "Usernames saved!", Toast.LENGTH_SHORT).show();
             }
             db.close();
         });

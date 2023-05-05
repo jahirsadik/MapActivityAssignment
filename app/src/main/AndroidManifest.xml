@@ -34,7 +34,7 @@
             android:name=".SelectActivity"
             android:exported="false"
             android:alwaysRetainTaskState="false"
-            android:parentActivityName=".MainActivity"/>
+            android:parentActivityName=".StartActivity"/>
 
         <activity
             android:name=".RouteActivity"
@@ -42,7 +42,7 @@
             android:parentActivityName=".SelectActivity"/>
 
         <activity
-            android:name=".MainActivity"
+            android:name=".StartActivity"
             android:exported="true"
             android:label="Location Tracker">
             <intent-filter>
