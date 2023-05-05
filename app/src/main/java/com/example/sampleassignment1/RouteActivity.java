@@ -177,12 +177,11 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                 }
 
                 if (!fromlocations.isEmpty()) {
-                    dateFrom = fromlocations.first().date;
                     for (UserLocEntry loc : fromlocations) {
                         mMap.addMarker(
                                 new MarkerOptions()
                                         .title(fromUser)
-                                        .snippet("When:" + dateFrom +
+                                        .snippet("When:" + loc.date +
                                                 "\nWhere: " + loc.address)
                                         .position(new LatLng(loc.latitude, loc.longitude))
                                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
@@ -190,12 +189,11 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                     }
                 }
                 if (!toLocations.isEmpty()) {
-                    dateTo = toLocations.first().date;
                     for (UserLocEntry loc : toLocations) {
                         mMap.addMarker(
                                 new MarkerOptions()
                                         .title(toUser)
-                                        .snippet("When:" + dateTo +
+                                        .snippet("When:" + loc.date +
                                                 "\nWhere: " + loc.address)
                                         .position(new LatLng(loc.latitude, loc.longitude))
                                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
