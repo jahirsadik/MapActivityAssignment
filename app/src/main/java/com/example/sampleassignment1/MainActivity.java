@@ -7,17 +7,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
-
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
 
-public class SelectActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity {
     MyLocationPlaceMap myLocationPlaceMap;
 
     private String currentUser;
@@ -39,7 +34,7 @@ public class SelectActivity extends AppCompatActivity {
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         setContentView(R.layout.activity_select);
 
-        myLocationPlaceMap = new MyLocationPlaceMap(getApplicationContext(), SelectActivity.this);
+        myLocationPlaceMap = new MyLocationPlaceMap(getApplicationContext(), MainActivity.this);
         myLocationPlaceMap.requestPermissions();
         myLocationPlaceMap.getLatLngAddress(myLocations);
 

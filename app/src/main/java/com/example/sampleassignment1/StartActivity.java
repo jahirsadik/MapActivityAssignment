@@ -140,7 +140,7 @@ public class StartActivity extends AppCompatActivity {
                 Set<String> users = new HashSet<>(Arrays.asList(arr));
                 users.remove(selected.getText().toString());
                 String[] filtered = users.toArray(new String[0]);
-                Intent intent = new Intent(this, SelectActivity.class);
+                Intent intent = new Intent(this, MainActivity.class);
                 intent.putExtra("selectedUser", selected.getText().toString());
                 intent.putExtra("otherUser1", filtered[0]);
                 intent.putExtra("otherUser2", filtered[1]);
