@@ -87,8 +87,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             UserLocEntry userLocEntry = new UserLocEntry(address, time, latitude, longitude);
 
             Log.d("localdatetime", LocalDateTime.now().toString());
-            String latStr = Integer.toString((int)(latitude * 1000));
-            String longStr = Integer.toString((int)(longitude * 1000));
+            String latStr = Integer.toString((int)(latitude * 1000)); // change in 3rd digit of latitude after decimal point
+            String longStr = Integer.toString((int)(longitude * 1000)); // change in 3rd digit of longitude after decimal point
             String latlong = latStr + longStr;
             fDatabase.child(username).child(latlong).setValue(userLocEntry);
         }
