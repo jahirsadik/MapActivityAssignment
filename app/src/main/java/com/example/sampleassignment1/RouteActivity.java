@@ -166,6 +166,7 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
             public void onMapLoaded() {
                 LatLng from;
                 LatLng to;
+                String dateFrom, dateTo;
 
                 if (!fromlocations.isEmpty() && !toLocations.isEmpty()) {
                     from = new LatLng(fromlocations.first().latitude, fromlocations.first().longitude);
@@ -176,24 +177,26 @@ public class RouteActivity extends AppCompatActivity implements OnMapReadyCallba
                 }
 
                 if (!fromlocations.isEmpty()) {
+                    dateFrom = fromlocations.first().date;
                     for (UserLocEntry loc : fromlocations) {
                         mMap.addMarker(
                                 new MarkerOptions()
                                         .title(fromUser)
-                                        .snippet("Latitude: " + loc.latitude + ", Longitude: " + loc.longitude +
-                                                "\nAddress: " + loc.address)
+                                        .snippet("When:" + dateFrom +
+                                                "\nWhere: " + loc.address)
                                         .position(new LatLng(loc.latitude, loc.longitude))
                                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                         );
                     }
                 }
                 if (!toLocations.isEmpty()) {
+                    dateTo = toLocations.first().date;
                     for (UserLocEntry loc : toLocations) {
                         mMap.addMarker(
                                 new MarkerOptions()
                                         .title(toUser)
-                                        .snippet("Latitude: " + loc.latitude + ", Longitude: " + loc.longitude +
-                                                "\nAddress: " + loc.address)
+                                        .snippet("When:" + dateTo +
+                                                "\nWhere: " + loc.address)
                                         .position(new LatLng(loc.latitude, loc.longitude))
                                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                         );
